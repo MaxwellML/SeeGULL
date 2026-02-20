@@ -34,11 +34,12 @@ with rasterio.open(tif_path) as src:
             L_square, L_square,
             fill=True,
             linewidth=2,
-            zorder=10
+            zorder=10,
+            alpha=0.3
         )
     )
 
-    L_region = 1000
+    L_region = 300
     h_region = L_region / 2
 
     left, right = E - h_region, E + h_region
@@ -53,7 +54,7 @@ with rasterio.open(tif_path) as src:
 
     for k, (Eh, Nh) in enumerate(hits):
         color = cmap(k / n_rays)
-        ax.plot([E, Eh], [N, Nh], color=color, linewidth=1, alpha=0.8, zorder=9)
+        ax.plot([E, Eh], [N, Nh], color=color, linewidth=1, alpha=0.3, zorder=9)
 
 
     ax.set_xlim(left, right)
