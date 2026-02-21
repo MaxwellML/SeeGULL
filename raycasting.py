@@ -2,6 +2,7 @@
 #cast ray along vector until bounding box edge hit.
 #repeat incrementally across 2pi radians.
 
+
 import math
 from typing import Optional, Tuple, List
 from rasterio.transform import rowcol
@@ -74,73 +75,4 @@ def cast_rays_360(
     return hits
 
 
-def cells_crossed(
-    affine: Affine,
-    width: int,
-    height: int,
-    E0: float,
-    N0: float,
-    E1: float,
-    N1: float,
-    eps: float = 1e-12,
-):
 
-    dE = E1 - E0
-    dN = N1 - N0 #define direction vector given start and end points.
-
-    r, c = rowcol(affine, E0, N0) #define r,c of start point
-    r_end, c_end = rowcol(affine, E1, N1) #define r,c of end point
-
-    if not (0 <= r < height and 0 <= c < width):
-        return #do not allow indexing outside the raster grid.
-
-    yield (r, c) #output starting cell, then continue.
-  
-    resE = affine.a
-    resN = -affine.e  #find the width and height of a single pixel as defined by the raster file.
-
-    step_c = 1 if dE > 0 else (-1 if dE < 0 else 0) #find if ray points east or west.
-    step_r = 1 if dN < 0 else (-1 if dN > 0 else 0) #find if ray points north or south.
-
-    x_left, y_top = affine * (c, r)
-    x_right = x_left + resE
-    y_bottom = y_top - resN #find rectangle bounds of current cell as world coordinates.
-
-    def safe_div(num: float, den: float) -> float:
-        return num / den if abs(den) > eps else math.inf #avoid division by 0 if we are perfectly horizontal or vertical.
-
-    if step_c > 0:
-        tMaxX = safe_div(x_right - E0, dE)
-    elif step_c < 0:
-        tMaxX = safe_div(x_left - E0, dE)
-    else:
-        tMaxX = math.inf
-
-    #find how far we would need to travel to hit a horizontal border.
-
-    if step_r > 0:
-        tMaxY = safe_div(y_bottom - N0, dN)
-    elif step_r < 0:
-        tMaxY = safe_div(y_top - N0, dN)
-    else:
-        tMaxY = math.inf
-
-    #find how far we would need to travel to hit a vertical border.
-
-    tDeltaX = abs(resE / dE) if abs(dE) > eps else math.inf #set jump size for vertical boundary lines.
-    tDeltaY = abs(resN / dN) if abs(dN) > eps else math.inf #set jump size for horiztontal boundary lines.
-
-    while (r, c) != (r_end, c_end): #until we hit the boundary line.
-        if tMaxX + eps < tMaxY: #if we will hit a vertical boundary first, move into neighbouring column.
-            c += step_c
-            tMaxX += tDeltaX
-        elif tMaxY + eps < tMaxX: #if we will hit a vertical boundary first, move into neighbouring row.
-            r += step_r
-            tMaxY += tDeltaY
-        else: #if we will hit a corner, move into diagonally neighbouring square.
-            c += step_c
-            r += step_r
-            tMaxX += tDeltaX
-            tMaxY += tDeltaY
-
-        yield (r, c) #output new cell we have moved into.
