@@ -3,6 +3,16 @@
 #cell is visible iff it is not behind a cell with a greater slope.
 
 import numpy as np
+import math
+from typing import Iterable, Tuple, Optional
+from affine import Affine
+from rasterio.transform import rowcol
+
+
+def cell_centre(affine: Affine, r: int, c: int): #compute centre of cell.
+    E, N = affine * (c + 0.5, r + 0.5)
+    return E, N
+
 
 def line_of_sight(
     cells: Iterable[Tuple[int, int]],
@@ -31,9 +41,12 @@ def line_of_sight(
             visible.append(False)
             continue
 
-        E, N = cell_center(affine, r, c) #find world coordinate of cell's centre.
+        E, N = cell_centre(affine, r, c) #find world coordinate of cell's centre.
 
         d = math.hypot(E - E0, N - N0) #find distance from observer to cell.
+        if d < eps:
+            visible.append(True)
+            continue
 
         s = (z - z0) / d #find slope from observer to cell.
 
@@ -115,5 +128,7 @@ def cells_crossed(
             tMaxX += tDeltaX
             tMaxY += tDeltaY
 
-        yield (r, c) #output new cell we have moved into.
+        if not (0 <= r < height and 0 <= c < width):
+            return
 
+        yield (r, c) #output new cell we have moved into.

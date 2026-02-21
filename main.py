@@ -1,4 +1,4 @@
-#2500 samples in a 5km x 5km square.
+#2500 samples in a 5km x 5km square. 
 #Step 100m.
 #Sample 100m x 100m square.
 #Expect under 1s computation time.
@@ -13,6 +13,7 @@ from pyproj import Transformer
 import numpy as np
 from matplotlib.colors import ListedColormap
 from raycasting import cast_rays_360
+from lineofsight import cells_crossed, line_of_sight
 
 tif_path = Path(__file__).resolve().parent / "SZ49se_FZ_DSM_1m.tif"
 
@@ -27,6 +28,8 @@ with rasterio.open(tif_path) as src:
     fig, ax = plt.subplots() #create matplotlib figure and axes.
     show(src, ax=ax) #display DEM on axes.
 
+    dem = src.read(1)
+
     L_region = 100
     h_region = L_region / 2
 
@@ -36,7 +39,15 @@ with rasterio.open(tif_path) as src:
 
 
 
-    hits = cast_rays_360(E, N, square_size_m=L_region, n_rays=360) #cast rays.
+    hits = cast_rays_360(E, N, square_size_m=L_region, n_rays=360, affine=affine) #cast rays.
+
+    ray_results = []
+    for (Eh, Nh) in hits:
+        cells = cells_crossed(affine, src.width, src.height, E, N, Eh, Nh)
+        if cells is None:
+            continue
+        vis = line_of_sight(cells, dem, affine, E, N, nodata=src.nodata)
+        ray_results.append((list(cells_crossed(affine, src.width, src.height, E, N, Eh, Nh)) , vis))
 
     ax.set_xlim(left, right)
     ax.set_ylim(bottom, top) #zoom in plot.

@@ -57,8 +57,11 @@ def cast_rays_360(
     N0: float,
     square_size_m: float = 100.0,
     n_rays: int = 360,
-    affine: affine=affine
+    affine=None
 ):
+
+    if affine is None: #if no affine passed, raise an error.
+        raise ValueError("affine must be provided")
 
     r, c = rowcol(affine, E0, N0) #define row and column of centre.
     half = square_size_m / 2
@@ -66,13 +69,10 @@ def cast_rays_360(
 
     for k in range(n_rays):
         theta = 2 * math.pi * (k / n_rays) #convert to radians.
-        hit = ray_hit_square(E0, N0, half, theta, affine) #find ray for a given angle.
+        hit = ray_hit_square(E0, N0, half, theta) #find ray for a given angle.
         if hit is None:
             continue
         Eh, Nh = hit #find point of intersection.
         hits.append((Eh, Nh))
 
     return hits
-
-
-
