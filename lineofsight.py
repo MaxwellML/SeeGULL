@@ -20,7 +20,7 @@ def line_of_sight(
     affine: Affine,
     E0: float,
     N0: float,
-    observer_height: float = 0.0,
+    observer_height: float = 0,
     nodata: Optional[float] = None,
     eps: float = 1e-12,
 ):

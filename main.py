@@ -17,8 +17,9 @@ from lineofsight import cells_crossed, line_of_sight
 
 tif_path = Path(__file__).resolve().parent / "SZ49se_FZ_DSM_1m.tif"
 
-lon = float(input("Enter Longitude (e.g. -1.3276): "))
-lat = float(input("Enter Latitude  (e.g. 50.730251): "))
+lon = -1.3276
+lat = 50.730251
+observer_height = 1.5
 
 with rasterio.open(tif_path) as src:
 
@@ -46,7 +47,7 @@ with rasterio.open(tif_path) as src:
         cells = cells_crossed(affine, src.width, src.height, E, N, Eh, Nh)
         if cells is None:
             continue
-        vis = line_of_sight(cells, dem, affine, E, N, nodata=src.nodata)
+        vis = line_of_sight(cells, dem, affine, E, N, observer_height, nodata=src.nodata)
         ray_results.append((list(cells_crossed(affine, src.width, src.height, E, N, Eh, Nh)) , vis))
 
     ax.set_xlim(left, right)
@@ -68,5 +69,11 @@ with rasterio.open(tif_path) as src:
     cmap = ListedColormap(["lightgrey", "limegreen"])  
     show(overlay, transform=affine, ax=ax, cmap=cmap, alpha=0.35, zorder=50) #display mask on axes.
 
+    ax.plot(E, N, marker='x', linestyle='None', markersize=10, markeredgewidth=2, zorder=100) #add marker to centre.
+
+    fig_dem, ax_dem = plt.subplots()
+    ax_dem.set_xlim(left, right)
+    ax_dem.set_ylim(bottom, top)
+    show(src, ax=ax_dem)  #show unadulterated DEM map for reference.
 
     plt.show()
