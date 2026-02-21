@@ -22,7 +22,7 @@ with rasterio.open(tif_path) as src:
 
     t = Transformer.from_crs("EPSG:4326", src.crs, always_xy=True)
     E, N = t.transform(lon, lat)
-
+    affine = src.transform
     fig, ax = plt.subplots()
     show(src, ax=ax)
 
@@ -39,7 +39,7 @@ with rasterio.open(tif_path) as src:
         )
     )
 
-    L_region = 300
+    L_region = 100
     h_region = L_region / 2
 
     left, right = E - h_region, E + h_region
