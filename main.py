@@ -15,11 +15,11 @@ from matplotlib.colors import ListedColormap
 from raycasting import cast_rays_360
 from lineofsight import cells_crossed, line_of_sight
 
-tif_path = Path(__file__).resolve().parent / "SZ49se_FZ_DSM_1m.tif"
+tif_path = Path(__file__).resolve().parent / "SZ49se_FZ_DSM_1m.tif" #current DEM map is located in Isle of Wight, can be accessed via: https://environment.data.gov.uk/survey
 
-lon = -1.3276
-lat = 50.730251
-observer_height = 1.5
+lon = input("Enter longitude (e.g -1.3276): ")
+lat = input("Enter latitude (e.g 50.730251): ")
+observer_height = ("Enter observer height (e.g 1.5): ")
 
 with rasterio.open(tif_path) as src:
 
