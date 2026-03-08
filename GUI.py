@@ -36,17 +36,50 @@ def start_gui(run_program): #entry point for the program.
             self.tip.destroy() #remove window.
             self.tip = None #...and the reference to it.
 
+    def validate_inputs():
+        max_observer_height = 10000
+        lon_text = lon_entry.get().strip() #retrieve user input for longitude.
+        lat_text = lat_entry.get().strip() #retrieve user input for latitude.
+        observer_height_text = height_entry.get().strip() #retrieve user input for observer height.
+
+        if not lon_text or not lat_text or not observer_height_text:
+            raise ValueError("Please fill in all three fields.") #if any field is left blank, raise an error.
+
+        try:
+            lon = float(lon_text) 
+            lat = float(lat_text)
+            observer_height = float(observer_height_text)
+        except ValueError:
+            raise ValueError("Longitude, latitude, and observer height must all be numbers.")
+        #attempt to convert inputs to floats, if they cannot be converted, raise an error.
+
+        if not (-180 <= lon <= 180):
+            raise ValueError("Longitude must be between -180 and 180.") #valid ranges for ESPG:4326 latitude is -180 to 180.
+
+        if not (-90 <= lat <= 90):
+            raise ValueError("Latitude must be between -90 and 90.") #valid ranges for ESPG:4326 latitude is -90 to 90.
+
+        if observer_height <= 0:
+            raise ValueError("Observer height must be greater than 0 metres.") #if user inputs negative observer height, raise an error.
+
+        if observer_height > max_observer_height:
+            raise ValueError(f"Observer height must not exceed {max_observer_height} metres.") #if user inputs an observer height above the maximum, raise an error.
+
+        return lon, lat, observer_height #return inputs once validated so run_program can be run.
+    
+    def show_error(message):
+        error_label.config(text=message) #update the error label with the error text.
+
 
     def submit():
+        error_label.config(text="") # clear any previous error message.
         try:
-            lon = float(lon_entry.get()) #obtain longitude user has typed in.
-            lat = float(lat_entry.get()) #obtain latitude user has typed in.
-            observer_height = float(height_entry.get()) #obtain observer height user has typed in.
+            lon, lat, observer_height = validate_inputs() #validate the user's inputs.
             run_program(lon, lat, observer_height) #run the main program with the three values.
         except ValueError:
-            messagebox.showerror("Invalid input", "Please enter valid numbers.") #handle invalid number input.
+            show_error(str(e)) #handle invalid number input.
         except Exception as e:
-            messagebox.showerror("Error", str(e)) #handle generic bad user input.
+            show_error(str(e)) #handle generic bad user input.
 
 
     root = tk.Tk() #create the GUI window.
@@ -75,7 +108,9 @@ def start_gui(run_program): #entry point for the program.
     submit_button = tk.Button(root, text="Submit", command=submit) #create a button that when clicked runs the submit function.
     submit_button.grid(row=3, column=0, columnspan=3, pady=(18, 10)) #place button into grid.
 
-    #attach a tooltip to the longitude help widget.
+    error_label = tk.Label(root, text="", fg="red")
+    error_label.grid(row=4, column=0, columnspan=3, pady=(0, 10))
+    #attach a widget to display information regarding errors.
     ToolTip(
         lon_help,
         "Enter the coordinate's longitude in EPSG:4326.\nExample: -1.3276"
