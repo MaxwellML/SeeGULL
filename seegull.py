@@ -78,7 +78,7 @@ def run_program(lon, lat, observer_height):
                 markeredgewidth=2, label="Observer")
         ] # axis legend.
 
-        ax.legend(handles=legend_handles, loc="upper right")
+        ax.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.02, 1)) # move legend off grid to avoid overlapping.
         fig_dem, ax_dem = plt.subplots()
         ax_dem.set_xlim(left, right)
         ax_dem.set_ylim(bottom, top)
