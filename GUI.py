@@ -54,10 +54,10 @@ def start_gui(run_program): #entry point for the program.
         #attempt to convert inputs to floats, if they cannot be converted, raise an error.
 
         if not (-180 <= lon <= 180):
-            raise ValueError("Longitude must be between -180 and 180.") #valid ranges for ESPG:4326 latitude is -180 to 180.
+            raise ValueError("Longitude must be between -180 and 180.") #valid range for ESPG:4326 latitude is -180 to 180.
 
         if not (-90 <= lat <= 90):
-            raise ValueError("Latitude must be between -90 and 90.") #valid ranges for ESPG:4326 latitude is -90 to 90.
+            raise ValueError("Latitude must be between -90 and 90.") #valid range for ESPG:4326 latitude is -90 to 90.
 
         if observer_height <= 0:
             raise ValueError("Observer height must be greater than 0 metres.") #if user inputs negative observer height, raise an error.
@@ -76,7 +76,7 @@ def start_gui(run_program): #entry point for the program.
         try:
             lon, lat, observer_height = validate_inputs() #validate the user's inputs.
             run_program(lon, lat, observer_height) #run the main program with the three values.
-        except ValueError:
+        except ValueError as e:
             show_error(str(e)) #handle invalid number input.
         except Exception as e:
             show_error(str(e)) #handle generic bad user input.

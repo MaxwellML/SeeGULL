@@ -19,6 +19,9 @@ def run_program(lon, lat, observer_height):
 
         t = Transformer.from_crs("EPSG:4326", src.crs, always_xy=True) #construct CRS transformer.
         E, N = t.transform(lon, lat) #convert from ESPG to CRS.
+        if not (src.bounds.left <= E <= src.bounds.right and src.bounds.bottom <= N <= src.bounds.top):
+            raise ValueError("These coordinates are outside the loaded GeoTIFF area.") #if user enters coordinates that are out of range, raise an error.
+
         affine = src.transform #define world pixel conversion.
         fig, ax = plt.subplots() #create matplotlib figure and axes.
         show(src, ax=ax) #display DEM on axes.
