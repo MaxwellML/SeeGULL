@@ -131,13 +131,13 @@ lon_entry.grid(row=0, column=1, pady=(15, 8), sticky="w") #place input box into 
 lon_help = tk.Label(root, text="?", fg="blue", cursor="question_arrow") #create the helper widget and make the foreground blue.
 lon_help.grid(row=0, column=2, padx=6, pady=(15, 8), sticky="w") #place helper widget into grid.
 
-tk.Label(root, text="Latitude (EPSG:4326):").grid(row=3, column=0, padx=(12, 4), pady=8, sticky="w") #add text for latitude input box, push it to the left and add padding.
+tk.Label(root, text="Latitude (EPSG:4326):").grid(row=1, column=0, padx=(12, 4), pady=8, sticky="w") #add text for latitude input box, push it to the left and add padding.
 lat_entry = tk.Entry(root, width=22) #create the input box.
 lat_entry.grid(row=1, column=1, pady=8, sticky="w") #place input box into grid.
 lat_help = tk.Label(root, text="?", fg="blue", cursor="question_arrow") #create the helper widget and make the foreground blue.
 lat_help.grid(row=1, column=2, padx=6, pady=8, sticky="w") #place helper widget into grid.
 
-tk.Label(root, text="Observer height (m):").grid(row=5, column=0, padx=(12, 4), pady=8, sticky="w" #add text for observer height input box, push it to the left and add padding.
+tk.Label(root, text="Observer height (m):").grid(row=2, column=0, padx=(12, 4), pady=8, sticky="w") #add text for observer height input box, push it to the left and add padding.
 height_entry = tk.Entry(root, width=22) #create the input box.
 height_entry.grid(row=2, column=1, pady=8, sticky="w") #place helper widget into grid.
 height_help = tk.Label(root, text="?", fg="blue", cursor="question_arrow") #create the helper widget and make the foreground blue.
