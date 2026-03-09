@@ -1,0 +1,12 @@
+#A file listing things that I mean to add.
+
+
+negative height is acceptable in e.g Netherlands
+add a colour scale instead of a binary map to respect a continuum
+add a maximum distance depending on resolution
+triangulation
+add a bar to filter by resolution 
+API call in a given region the coordinates that are visible 
+(coordinates stored in a CSV)
+SHP
+Can draw a polygon themselves
