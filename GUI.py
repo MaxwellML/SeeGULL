@@ -1,8 +1,119 @@
-from seegull import run_program
+from seegull import run_program, tif_path
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
+import numpy as np
+import rasterio
+from rasterio.plot import show
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 def start_gui(run_program): #entry point for the program.
+    class RightSideBar(ttk.Frame): #right side bar showing the DEM preview and overlay result, ttk.Frame specifies it as a widget container.
+        def __init__(self, parent):
+            super().__init__(parent, padding=8) #initialise the object as a ttk.Frame and add padding.
+
+            self.dem = None #store DEM data.
+            self.dem_transform = None #store raster transformer.
+            self.dem_crs = None #store raster CRS.
+            self.dem_path = None #store file path to DEM.
+            self.overlay = None #store result from LoS calculation to be overlayed.
+            self.observer_xy = None #store observer cooridnates.
+
+            self.rowconfigure(1, weight=1) #only allow preview to grow if needed.
+            self.columnconfigure(0, weight=1) #allow preview section to be streched sideways.
+
+            self.title_label = ttk.Label(self, text="DEM PREVIEW", font=("Segoe UI", 12, "bold")) #add Title.
+            self.title_label.grid(row=0, column=0, sticky="w", pady=(0, 6)) #position Title.
+
+            self.fig = Figure(figsize=(7, 6), dpi=100) #create a Matplotlib Figure object.
+            self.ax = self.fig.add_subplot(111) #add axes.
+            self.ax.set_title("No DEM loaded") #if no DEM loaded, inform user.
+            self.ax.set_xticks([])
+            self.ax.set_yticks([]) #do not show ticks around empty canvas message.
+
+            self.canvas = FigureCanvasTkAgg(self.fig, master=self) #create a Tkinter compatible canvas wrapper for Matplotlib.
+            self.canvas_widget = self.canvas.get_tk_widget() #render it with equivalent widget corresponding to a Matplotlib figure.
+            self.canvas_widget.grid(row=1, column=0, sticky="nsew") #force DEM canvas to fill entire grid cell.
+
+            self.toolbar_frame = ttk.Frame(self) #add container for Matplotlib toolbar.
+            self.toolbar_frame.grid(row=2, column=0, sticky="ew") #position Matplotlib toolbar.
+            self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame, pack_toolbar=False) #create the Matplotlib toolbar to add interactivity to the canvas.
+            self.toolbar.update() #standard practice: refresh toolbar before displaying.
+            self.toolbar.pack(side="left") #move toolbar to the left.
+
+        def load_dem(self, dem_path):
+
+            with rasterio.open(dem_path) as src:
+                self.dem = src.read(1, masked=True) #read in the elevation grid.
+                self.dem_transform = src.transform #read in transformer.
+                self.dem_crs = src.crs #read in CRS.
+                self.dem_path = dem_path #read in file path.
+
+            self.overlay = None
+            self.observer_xy = None
+            self._redraw()
+
+        def set_overlay(self, overlay_mask, observer_xy=None):
+            if self.dem is None:
+                raise ValueError("Load a DEM before setting an overlay.") #check a DEM file is present.
+
+            if overlay_mask.shape != self.dem.shape:
+                raise ValueError("Overlay mask must have the same shape as the DEM.")
+
+            self.overlay = overlay_mask #store DEM LoS render.
+            self.observer_xy = observer_xy #store observer coordinates.
+            self._redraw() #render.
+
+        def clear_overlay(self):
+            self.overlay = None #remove any previous overlay.
+            self.observer_xy = None #remove any previous observer point.
+            self._redraw() #render preview area again.
+
+        def draw_external_plot(self, draw_function, *args, **kwargs):
+            self.ax.clear()
+            draw_function(*args, ax=self.ax, **kwargs)
+            self.canvas.draw_idle()
+
+        def _redraw(self):
+            self.ax.clear() #clean axes to prevent buildup.
+
+            if self.dem is None: #if no DEM given, show blank DEM message.
+                self.ax.set_title("No DEM loaded")
+                self.ax.set_xticks([])
+                self.ax.set_yticks([])
+                self.canvas.draw_idle()
+                return
+
+            show(
+                self.dem,
+                transform=self.dem_transform,
+                ax=self.ax,
+                cmap="terrain"
+            )  #render DEM base image.
+
+            if self.overlay is not None:
+                masked_overlay = np.ma.masked_where(self.overlay == 0, self.overlay)
+                show(
+                    masked_overlay,
+                    transform=self.dem_transform,
+                    ax=self.ax,
+                    cmap="autumn",
+                    alpha=0.35
+                ) #overlay DEM LoS on top of image.
+
+            if self.observer_xy is not None:
+                x, y = self.observer_xy
+                self.ax.scatter([x], [y], marker="x", s=100, linewidths=2) #
+
+            self.ax.set_title("DEM Preview")
+            self.canvas.draw_idle()
+
+        def hide_tip(self, event=None):
+            if self.tip is not None:
+                self.tip.destroy() #remove window.
+                self.tip = None #...and the reference to it.
+                
     class LeftSideBar: #for each helper button
         def __init__(self, widget, text):
             self.widget = widget #widget the popup belongs to.
@@ -32,10 +143,6 @@ def start_gui(run_program): #entry point for the program.
             ) #customise appearance of label inside window.
             label.pack() #place label inside tooltip window.
 
-        def hide_tip(self, event=None):
-            if self.tip is not None:
-                self.tip.destroy() #remove window.
-                self.tip = None #...and the reference to it.
 
     def validate_inputs():
         max_observer_height = 10000
@@ -154,102 +261,4 @@ def start_gui(run_program): #entry point for the program.
     #start Tkinter event loop so it "listens" for user input.
     root.mainloop()
 
-    class RightSideBar(ttk.Frame): #right side bar showing the DEM preview and overlay result, ttk.Frame specifies it as a widget container.
-        def __init__(self, parent):
-            super().__init__(parent, padding=8) #initialise the object as a ttk.Frame and add padding.
-
-            self.dem = None #store DEM data.
-            self.dem_transform = None #store raster transformer.
-            self.dem_crs = None #store raster CRS.
-            self.dem_path = None #store file path to DEM.
-            self.overlay = None #store result from LoS calculation to be overlayed.
-            self.observer_xy = None #store observer cooridnates.
-
-            self.rowconfigure(1, weight=1) #only allow preview to grow if needed.
-            self.columnconfigure(0, weight=1) #allow preview section to be streched sideways.
-
-            self.title_label = ttk.Label(self, text="DEM PREVIEW", font=("Segoe UI", 12, "bold")) #add Title.
-            self.title_label.grid(row=0, column=0, sticky="w", pady=(0, 6)) #position Title.
-
-            self.fig = Figure(figsize=(7, 6), dpi=100) #create a Matplotlib Figure object.
-            self.ax = self.fig.add_subplot(111) #add axes.
-            self.ax.set_title("No DEM loaded") #if no DEM loaded, inform user.
-            self.ax.set_xticks([])
-            self.ax.set_yticks([]) #do not show ticks around empty canvas message.
-
-            self.canvas = FigureCanvasTkAgg(self.fig, master=self) #create a Tkinter compatible canvas wrapper for Matplotlib.
-            self.canvas_widget = self.canvas.get_tk_widget() #render it with equivalent widget corresponding to a Matplotlib figure.
-            self.canvas_widget.grid(row=1, column=0, sticky="nsew") #force DEM canvas to fill entire grid cell.
-
-            self.toolbar_frame = ttk.Frame(self) #add container for Matplotlib toolbar.
-            self.toolbar_frame.grid(row=2, column=0, sticky="ew") #position Matplotlib toolbar.
-            self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame, pack_toolbar=False) #create the Matplotlib toolbar to add interactivity to the canvas.
-            self.toolbar.update() #standard practice: refresh toolbar before displaying.
-            self.toolbar.pack(side="left") #move toolbar to the left.
-
-        def load_dem(self, dem_path):
-
-            with rasterio.open(dem_path) as src:
-                self.dem = src.read(1, masked=True) #read in the elevation grid.
-                self.dem_transform = src.transform #read in transformer.
-                self.dem_crs = src.crs #read in CRS.
-                self.dem_path = dem_path #read in file path.
-
-            self.overlay = None
-            self.observer_xy = None
-            self._redraw()
-
-        def set_overlay(self, overlay_mask, observer_xy=None):
-            if self.dem is None:
-                raise ValueError("Load a DEM before setting an overlay.") #check a DEM file is present.
-
-            if overlay_mask.shape != self.dem.shape:
-                raise ValueError("Overlay mask must have the same shape as the DEM.")
-
-            self.overlay = overlay_mask #store DEM LoS render.
-            self.observer_xy = observer_xy #store observer coordinates.
-            self._redraw() #render.
-
-        def clear_overlay(self):
-            self.overlay = None #remove any previous overlay.
-            self.observer_xy = None #remove any previous observer point.
-            self._redraw() #render preview area again.
-
-        def draw_external_plot(self, draw_function, *args, **kwargs):
-            self.ax.clear()
-            draw_function(*args, ax=self.ax, **kwargs)
-            self.canvas.draw_idle()
-
-        def _redraw(self):
-            self.ax.clear() #clean axes to prevent buildup.
-
-            if self.dem is None: #if no DEM given, show blank DEM message.
-                self.ax.set_title("No DEM loaded")
-                self.ax.set_xticks([])
-                self.ax.set_yticks([])
-                self.canvas.draw_idle()
-                return
-
-            show(
-                self.dem,
-                transform=self.dem_transform,
-                ax=self.ax,
-                cmap="terrain"
-            )  #render DEM base image.
-
-            if self.overlay is not None:
-                masked_overlay = np.ma.masked_where(self.overlay == 0, self.overlay)
-                show(
-                    masked_overlay,
-                    transform=self.dem_transform,
-                    ax=self.ax,
-                    cmap="autumn",
-                    alpha=0.35
-                ) #overlay DEM LoS on top of image.
-
-            if self.observer_xy is not None:
-                x, y = self.observer_xy
-                self.ax.scatter([x], [y], marker="x", s=100, linewidths=2) #
-
-            self.ax.set_title("DEM Preview")
-            self.canvas.draw_idle()
+    
