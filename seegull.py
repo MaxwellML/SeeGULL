@@ -14,7 +14,7 @@ from matplotlib.lines import Line2D
 tif_path = Path(__file__).resolve().parent / "GeoTIFF" / "SZ49se_FZ_DSM_1m.tif" # current DEM map is located in Isle of Wight, can be accessed via: https://environment.data.gov.uk/survey
 
 
-def run_program(lon, lat, observer_height):
+def run_program(lon, lat, observer_height, ax=None, show_reference=False):
     with rasterio.open(tif_path) as src:
 
         t = Transformer.from_crs("EPSG:4326", src.crs, always_xy=True) #construct CRS transformer.
@@ -23,7 +23,14 @@ def run_program(lon, lat, observer_height):
             raise ValueError("These coordinates are outside the loaded GeoTIFF area.") #if user enters coordinates that are out of range, raise an error.
 
         affine = src.transform #define world pixel conversion.
-        fig, ax = plt.subplots() #create matplotlib figure and axes.
+
+        created_ax = ax is None
+        if created_ax:
+            fig, ax = plt.subplots() #create matplotlib figure and axes.
+        else:
+            fig = ax.figure
+            ax.clear()
+
         show(src, ax=ax) #display DEM on axes.
 
         dem = src.read(1)
@@ -63,15 +70,15 @@ def run_program(lon, lat, observer_height):
 
         overlay = np.ma.masked_where(vis_mask == -1, vis_mask) #convert into masked array.
 
-        cmap = ListedColormap(["lightgrey", "limegreen"])  
+        cmap = ListedColormap(["lightgrey", "limegreen"])
         show(overlay, transform=affine, ax=ax, cmap=cmap, alpha=0.35, zorder=50) #display mask on axes.
 
         ax.plot(E, N, marker='x', linestyle='None', markersize=10, markeredgewidth=2, zorder=100) #add marker to centre.
-                
+
         ax.set_xlabel("Easting (m)") # axis labels
         ax.set_ylabel("Northing (m)")
 
-      
+
         ax.set_title("Line-of-sight visibility") # axis title.
 
         legend_handles = [
@@ -82,11 +89,11 @@ def run_program(lon, lat, observer_height):
         ] # axis legend.
 
         ax.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.02, 1)) # move legend off grid to avoid overlapping.
-        fig_dem, ax_dem = plt.subplots()
-        ax_dem.set_xlim(left, right)
-        ax_dem.set_ylim(bottom, top)
-        show(src, ax=ax_dem)  #show unadulterated DEM map for reference.
 
-        plt.show()
-
-
+        return {
+            "overlay": overlay,
+            "observer_xy": (E, N),
+            "dem_path": tif_path,
+            "dem_transform": affine,
+            "dem_crs": src.crs,
+        } #return results to GUI.py to be displayed.

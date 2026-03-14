@@ -1,12 +1,20 @@
 #A file listing things that I mean to add.
 
+colour bands?
 
 negative height is acceptable in e.g Netherlands
 add a colour scale instead of a binary map to respect a continuum
 add a maximum distance depending on resolution
 triangulation
-add a bar to filter by resolution 
+add a bar to filter by resolution (drop down menu?)
 API call in a given region the coordinates that are visible 
 (coordinates stored in a CSV)
 SHP
 Can draw a polygon themselves
+
+
+1. Allow user to load in image of map.
+2. Side bar icons.
+3. Result OVERLAYED.
+
+(KEEP IN MIND I NEED A BLANK DISPLAY FOR WHEN THERE IS NO MAP SHOWN.)
