@@ -13,8 +13,7 @@ SHP
 Can draw a polygon themselves
 
 
-1. Allow user to load in image of map.
-2. Side bar icons.
-3. Result OVERLAYED.
 
-(KEEP IN MIND I NEED A BLANK DISPLAY FOR WHEN THERE IS NO MAP SHOWN.)
+
+1.Keep full DEM in memory.
+2. But only render visible region when panning and changing view.
