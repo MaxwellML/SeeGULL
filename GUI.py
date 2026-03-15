@@ -10,6 +10,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 
+
+tif_path = None #file to be loaded from.
+
 def start_gui(run_program): #entry point for the program.
 
     class RightSideBar(ttk.Frame): #right side bar showing the DEM preview and overlay result, ttk.Frame specifies it as a widget container.
@@ -189,7 +192,7 @@ def start_gui(run_program): #entry point for the program.
             error_label.config(text=message) #update the error label with the error text.
 
     def file_hanlder():
-            tif_path = None
+        
             selected_file_var = tk.StringVar(value=tif_path if tif_path else "No file selected") #default display when no file selected.
             def validate_file(file_path):
                 ext = Path(file_path).suffix.lower() #obtain ending of file name.
@@ -255,7 +258,8 @@ def start_gui(run_program): #entry point for the program.
                 show_error(str(e)) #handle invalid number input.
             except Exception as e:
                 show_error(str(e)) #handle generic bad user input.
-
+   
+    global tif_path 
     root = tk.Tk() #create the GUI window.
     root.title("SeeGULL") #title the window.
     root.geometry("1000x650") #default window size.
