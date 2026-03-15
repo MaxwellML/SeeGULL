@@ -1,4 +1,4 @@
-from seegull import run_program, tif_path
+from seegull import run_program
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
@@ -118,6 +118,9 @@ def start_gui(run_program): #entry point for the program.
                     self.tip = None #...and the reference to it.
                     
     class LeftSideBar: #for each helper button
+            
+
+  
             def __init__(self, widget, text):
                 self.widget = widget #widget the popup belongs to.
                 self.text = text #text that should appear in popup.
@@ -186,7 +189,7 @@ def start_gui(run_program): #entry point for the program.
             error_label.config(text=message) #update the error label with the error text.
 
     def file_hanlder():
-    
+            tif_path = None
             selected_file_var = tk.StringVar(value=tif_path if tif_path else "No file selected") #default display when no file selected.
             def validate_file(file_path):
                 ext = Path(file_path).suffix.lower() #obtain ending of file name.
@@ -195,7 +198,7 @@ def start_gui(run_program): #entry point for the program.
                     raise ValueError(f"Unsupported file type: {ext}") #...raise an error.
                 
             def load_file():
-                global tif_path  # update the tif_path imported at module level
+                global tif_path
                 file_path = filedialog.askopenfilename(
                     parent=root, #pop up must be shown in the app.
                     title="Open file for SeeGULL", #text at the top of window.
@@ -209,7 +212,7 @@ def start_gui(run_program): #entry point for the program.
                     return  #if user aborts, stop function.
 
                 try:
-                    validate_file(file_path) #
+                    validate_file(file_path) #validate file function.
                     tif_path = file_path #store chosen file path to be passed into run_program later.
                     selected_file_var.set(file_path)
                     right_sidebar.load_dem(tif_path) #load initial DEM preview.
@@ -228,6 +231,7 @@ def start_gui(run_program): #entry point for the program.
 
         
     def submit():
+            global tif_path
             error_label.config(text="") # clear any previous error message.
             try:
                 if not tif_path:
@@ -258,15 +262,13 @@ def start_gui(run_program): #entry point for the program.
     root.resizable(True, True) #allow user to resize window.
 
     root.rowconfigure(1, weight=1)
-    root.columnconfigure(1, weight=1)
+    root.columnconfigure(1, weight=1) #define region for file bar.
 
     left_panel = ttk.Frame(root, padding=12)
-    left_panel.grid(row=1, column=0, sticky="ns")
+    left_panel.grid(row=1, column=0, sticky="ns") #define region for left panel.
 
     right_sidebar = RightSideBar(root)
-    right_sidebar.grid(row=1, column=1, sticky="nsew")
-
-    file_hanlder()
+    right_sidebar.grid(row=1, column=1, sticky="nsew") #define region for right panel.
 
     tk.Label(left_panel, text="Longitude (EPSG:4326):").grid(row=0, column=0, padx=(12, 4), pady=(15, 8), sticky="w") #add text for longitude input box, push it to the left and add padding.
     lon_entry = tk.Entry(left_panel, width=22) #create the input box.
@@ -292,6 +294,8 @@ def start_gui(run_program): #entry point for the program.
     error_label = tk.Label(left_panel, text="", fg="red")
     error_label.grid(row=4, column=0, columnspan=3, pady=(0, 10))
     #attach a widget to display information regarding errors.
+
+    file_hanlder()
 
     #attach a tooltip to the latitude help widget.
     LeftSideBar(
