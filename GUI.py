@@ -7,21 +7,18 @@ import rasterio
 from rasterio.plot import show
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from rasterio.windows import from_bounds, crop
 
 def start_gui(run_program): #entry point for the program.
     class RightSideBar(ttk.Frame): #right side bar showing the DEM preview and overlay result, ttk.Frame specifies it as a widget container.
         def __init__(self, parent):
             super().__init__(parent, padding=8) #initialise the object as a ttk.Frame and add padding.
-            self.mode = "preview" #modes are "preview" (render entire map) and "analysis" (render visible region only).
+
             self.dem = None #store DEM data.
             self.dem_transform = None #store raster transformer.
             self.dem_crs = None #store raster CRS.
             self.dem_path = None #store file path to DEM.
             self.overlay = None #store result from LoS calculation to be overlayed.
             self.observer_xy = None #store observer cooridnates.
-            self._pending_view_refresh = False
-            self.analysis_home_bounds = None
 
             self.rowconfigure(1, weight=1) #only allow preview to grow if needed.
             self.columnconfigure(0, weight=1) #allow preview section to be streched sideways.
@@ -44,8 +41,6 @@ def start_gui(run_program): #entry point for the program.
             self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame, pack_toolbar=False) #create the Matplotlib toolbar to add interactivity to the canvas.
             self.toolbar.update() #standard practice: refresh toolbar before displaying.
             self.toolbar.pack(side="left") #move toolbar to the left.
-            self.ax.callbacks.connect("xlim_changed", self._schedule_view_refresh) #whenever x limits change, refresh.
-            self.ax.callbacks.connect("ylim_changed", self._schedule_view_refresh) #whenever y limits change, refresh.
 
         def load_dem(self, dem_path):
 
@@ -57,8 +52,6 @@ def start_gui(run_program): #entry point for the program.
 
             self.overlay = None
             self.observer_xy = None
-            self.mode = "preview"
-            self.analysis_home_bounds = None
             self._redraw()
 
         def set_overlay(self, overlay_mask, observer_xy=None):
@@ -75,8 +68,6 @@ def start_gui(run_program): #entry point for the program.
         def clear_overlay(self):
             self.overlay = None #remove any previous overlay.
             self.observer_xy = None #remove any previous observer point.
-            self.mode = "preview"
-            self.analysis_home_bounds = None
             self._redraw() #render preview area again.
 
         def draw_external_plot(self, draw_function, *args, **kwargs):
@@ -102,7 +93,7 @@ def start_gui(run_program): #entry point for the program.
             )  #render DEM base image.
 
             if self.overlay is not None:
-                masked_overlay = np.ma.masked_where(self.overlay == -1, self.overlay)
+                masked_overlay = np.ma.masked_where(self.overlay == 0, self.overlay)
                 show(
                     masked_overlay,
                     transform=self.dem_transform,
@@ -118,86 +109,11 @@ def start_gui(run_program): #entry point for the program.
             self.ax.set_title("DEM Preview")
             self.canvas.draw_idle()
 
-        def _schedule_view_refresh(self, ax):
-            if self.mode != "analysis":
-                return #if we are in preview mode, stop function.
-            if self._pending_view_refresh:
-                return #prevent duplicate calls.
-
-            self._pending_view_refresh = True #flag that a refresh is pending.
-            self.after_idle(self._refresh_visible_region) #when event loop is idle, refresh region.
-
-        def show_preview(self):
-            self.mode = "preview"
-            self.analysis_home_bounds = None
-            self._redraw()
-
-        def reset_analysis_view(self):
-            if self.mode != "analysis": #if we are not in analysis mode, stop function.
-                return
-            if self.analysis_home_bounds is None: #if we do not have home coordinates, stop function.
-                return
-            left, right, bottom, top = self.analysis_home_bounds #retrieve window corresponding to home coordinates.
-            self.ax.set_xlim(left, right) #set x limits to home coordinates.
-            self.ax.set_ylim(bottom, top) #set x limits to home coordinates.
-            self.canvas.draw_idle() #rerender the plot.
-
-        def _draw_view(self, dem_view, view_transform, overlay_view, left, right, bottom, top):
-            self.ax.clear() #remove data from axes.
-
-            show(dem_view, transform=view_transform, ax=self.ax, cmap="terrain") #draw DEM patch.
-
-            if overlay_view is not None: #if an overlay has been made.
-                masked_overlay = np.ma.masked_where(overlay_view == -1, overlay_view) #add LoS mask.
-                show(
-                    masked_overlay,
-                    transform=view_transform,
-                    ax=self.ax,
-                    cmap="autumn",
-                    alpha=0.35
-                ) #draw LoS mask on top of DEM map.
-
-            if self.observer_xy is not None: #if observer coordinates defined.
-                x, y = self.observer_xy
-                self.ax.scatter([x], [y], marker="x", s=100, linewidths=2) #draw an X at the observer's location.
-
-            self.ax.set_xlim(left, right) #set x limits.
-            self.ax.set_ylim(bottom, top) #set y limits.
-            self.ax.set_title("Line-of-sight visibility") #title plot.
-            self.canvas.draw_idle() #rerender the plot.
-
-        def _refresh_visible_region(self):
-            self._pending_view_refresh = False #lower flag that a refresh is pending.
-
-            if self.dem is None or self.mode != "analysis": #if no DEM or we aren't in analysis mode, stop function.
-                return
-
-            x0, x1 = self.ax.get_xlim() #obtain current visible x range.
-            y0, y1 = self.ax.get_ylim() #obtain current visible y range.
-
-            left   = min(x0, x1)
-            right  = max(x0, x1)
-            bottom = min(y0, y1)
-            top    = max(y0, y1) #normalise coordiantes to points of a box.
-
-            window = from_bounds(
-                left, bottom, right, top,
-                transform=self.dem_transform
-            ) #obtain raster chunk corresponding to box.
-            window = window.round_offsets().round_lengths() #round any decimals for cleanliness.
-            window = crop(window, self.dem.shape[0], self.dem.shape[1])
-
-            row_slice, col_slice = window.toslices() #extract rows and columns corresponding to our new window.
-
-            dem_view = self.dem[row_slice, col_slice] #raw raster data for window.
-            view_transform = rasterio.windows.transform(window, self.dem_transform) #define spatial position of window in the real world.
-
-            overlay_view = None
-            if self.overlay is not None:
-                overlay_view = self.overlay[row_slice, col_slice] #extract part of overlay visible in our new window.
-
-            self._draw_view(dem_view, view_transform, overlay_view, left, right, bottom, top) #draw DEM patch and place any overlay on top.
-
+        def hide_tip(self, event=None):
+            if self.tip is not None:
+                self.tip.destroy() #remove window.
+                self.tip = None #...and the reference to it.
+                
     class LeftSideBar: #for each helper button
         def __init__(self, widget, text):
             self.widget = widget #widget the popup belongs to.
@@ -227,10 +143,6 @@ def start_gui(run_program): #entry point for the program.
             ) #customise appearance of label inside window.
             label.pack() #place label inside tooltip window.
 
-        def hide_tip(self, event=None):
-            if self.tip is not None:
-                self.tip.destroy() #remove window.
-                self.tip = None #...and the reference to it.
 
     def validate_inputs():
         max_observer_height = 10000
@@ -273,22 +185,13 @@ def start_gui(run_program): #entry point for the program.
 
             right_sidebar.load_dem(tif_path) #load DEM into preview.
 
-            result = run_program(
+            run_program(
                 lon,
                 lat,
                 observer_height,
                 ax=right_sidebar.ax,
                 show_reference=False
             ) #run the main program with the three values on the embedded axes.
-
-            right_sidebar.set_overlay(result["overlay"], observer_xy=result["observer_xy"])
-            right_sidebar.mode = "analysis"
-            right_sidebar.analysis_home_bounds = result["initial_bounds"]
-
-            left, right, bottom, top = result["initial_bounds"]
-            right_sidebar.ax.set_xlim(left, right)
-            right_sidebar.ax.set_ylim(bottom, top)
-            right_sidebar._refresh_visible_region()
 
             right_sidebar.canvas.draw_idle() #refresh the embedded preview.
         except ValueError as e:
@@ -357,3 +260,5 @@ def start_gui(run_program): #entry point for the program.
 
     #start Tkinter event loop so it "listens" for user input.
     root.mainloop()
+
+    

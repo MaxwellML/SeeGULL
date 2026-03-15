@@ -42,6 +42,8 @@ def run_program(lon, lat, observer_height, ax=None, show_reference=False):
         bottom, top = N - h_region, N + h_region
         #define region where plot will be zoomed in to.
 
+
+
         hits = cast_rays_360(E, N, square_size_m=L_region, n_rays=360, affine=affine) #cast rays.
 
         ray_results = []
@@ -50,7 +52,7 @@ def run_program(lon, lat, observer_height, ax=None, show_reference=False):
             if cells is None:
                 continue
             vis = line_of_sight(cells, dem, affine, E, N, observer_height, nodata=src.nodata)
-            ray_results.append((list(cells), vis))
+            ray_results.append((list(cells_crossed(affine, src.width, src.height, E, N, Eh, Nh)) , vis))
 
         ax.set_xlim(left, right)
         ax.set_ylim(bottom, top) #zoom in plot.
@@ -65,6 +67,7 @@ def run_program(lon, lat, observer_height, ax=None, show_reference=False):
                     if vis_mask[r, c] != 1: #if another ray hasnt marked it visible (to prevent overwriting).
                         vis_mask[r, c] = 0  #mark as visible or invisible on the map.
 
+
         overlay = np.ma.masked_where(vis_mask == -1, vis_mask) #convert into masked array.
 
         cmap = ListedColormap(["lightgrey", "limegreen"])
@@ -74,6 +77,7 @@ def run_program(lon, lat, observer_height, ax=None, show_reference=False):
 
         ax.set_xlabel("Easting (m)") # axis labels
         ax.set_ylabel("Northing (m)")
+
 
         ax.set_title("Line-of-sight visibility") # axis title.
 
@@ -86,14 +90,10 @@ def run_program(lon, lat, observer_height, ax=None, show_reference=False):
 
         ax.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.02, 1)) # move legend off grid to avoid overlapping.
 
-        if created_ax and show_reference:
-            plt.show()
-
         return {
-            "overlay": vis_mask,
+            "overlay": overlay,
             "observer_xy": (E, N),
             "dem_path": tif_path,
             "dem_transform": affine,
             "dem_crs": src.crs,
-            "initial_bounds": (left, right, bottom, top),
         } #return results to GUI.py to be displayed.
