@@ -11,10 +11,8 @@ from lineofsight import cells_crossed, line_of_sight
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
 
-tif_path = Path(__file__).resolve().parent / "GeoTIFF" / "SZ49se_FZ_DSM_1m.tif" # current DEM map is located in Isle of Wight, can be accessed via: https://environment.data.gov.uk/survey
 
-
-def run_program(lon, lat, observer_height, ax=None, show_reference=False):
+def run_program(lon, lat, observer_height, tif_path, ax=None, show_reference=False):
     with rasterio.open(tif_path) as src:
 
         t = Transformer.from_crs("EPSG:4326", src.crs, always_xy=True) #construct CRS transformer.
